@@ -1,0 +1,13 @@
+0.6: Uusi muistiinpano
+
+  sequenceDiagram
+    participant browser
+    participant server
+    
+    browser->>server: POST https://studies.cs.helsinki.fi/exampleapp/new_note_spa
+    
+    browser->>server: application/json
+
+    activate server
+    server-->>browser: 201 Created
+    deactivate server
