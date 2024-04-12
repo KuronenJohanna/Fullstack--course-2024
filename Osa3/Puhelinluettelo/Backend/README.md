@@ -1,0 +1,1 @@
+Linkki sovellukseen: https://puhelinluettelo-kuronen.fly.dev/
