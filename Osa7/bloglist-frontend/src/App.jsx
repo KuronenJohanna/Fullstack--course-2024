@@ -1,176 +1,131 @@
 import { useState, useEffect } from 'react'
-import Blog from './components/Blog'
 import Notification from './components/Notification'
-import blogService from './services/blogs'
-import loginService from './services/login'
-import BlogForm from './components/BlogForm'
-import Togglable from './components/Togglable'
+import Blogs from './components/Blogs'
+import { useDispatch, useSelector } from 'react-redux'
+import Users from './components/users'
+import UserPage from './components/UserPage'
+import BlogPage from './components/BlogPage'
+import { initializeBlogs } from './reducers/blogReducer'
+import {
+    checkLoggeduser,
+    setLogindata,
+    setReset,
+} from './reducers/loginReducer'
+import { initializeUsers } from './reducers/usersReducer'
+import { Routes, Route, Link } from 'react-router-dom'
+import { Navbar, Nav, Form, Button } from 'react-bootstrap'
 
 const App = () => {
-  const [blogs, setBlogs] = useState([])
-
-  const [errorMessage, setErrorMessage] = useState(null)
-  const [noteMessage, setNoteMessage] = useState(null)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [user, setUser] = useState(null)
-
-
-
-  useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem('loggedNoteappUser')
-    if (loggedUserJSON) {
-      const user = JSON.parse(loggedUserJSON)
-      setUser(user)
-      blogService.setToken(user.token)
-
+    const padding = {
+        padding: '5px',
+        display: 'flex',
+        alignItems: 'center',
     }
-  }, [])
+    const dispatch = useDispatch()
+    const user = useSelector((state) => state.login.user)
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
 
-  useEffect(() => {
-    blogService
-      .getAll()
-      .then(blogs => {
-        const sortedBlogs = blogs.sort((a, b) => b.likes - a.likes)
-        setBlogs( sortedBlogs )
-      })
-  }, [])
+    useEffect(() => {
+        dispatch(checkLoggeduser())
+    }, [dispatch])
 
+    useEffect(() => {
+        dispatch(initializeBlogs())
+    }, [dispatch])
 
-  const addBlog = (blogObject) => {
-    blogService
-      .create(blogObject)
-      .then(returnedBlog => {
-        const updatedBlog = { ...returnedBlog, user: {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-        },
-         };
-        setBlogs(blogs.concat(updatedBlog))
-        setNoteMessage(`A new blog "${returnedBlog.title}" by "${returnedBlog.author}" added`)
-        console.log("this is test", updatedBlog)
-        setTimeout(() => {
-          setNoteMessage(null)
-        }, 5000)
+    useEffect(() => {
+        dispatch(initializeUsers())
+    }, [dispatch])
 
-      })
+    const handleLogin = async (event) => {
+        event.preventDefault()
 
+        dispatch(setLogindata(username, password))
 
-  }
-
-
-  const handleLogin = async (event) => {
-    event.preventDefault()
-
-    try {
-      const user = await loginService.login({
-        username, password,
-      })
-      window.localStorage.setItem(
-        'loggedNoteappUser', JSON.stringify(user)
-      )
-      blogService.setToken(user.token)
-      setUser(user)
-      setUsername('')
-      setPassword('')
-    } catch (exception) {
-      setErrorMessage('wrong username or password')
-      setTimeout(() => {
-        setErrorMessage(null)
-      }, 5000)
+        setUsername('')
+        setPassword('')
     }
-  }
 
-  const handleLogout = (event) => {
-    setUser(null)
-    window.localStorage.removeItem('loggedBlogappUser')
-
-  }
-
-
-  const handleRemoveBlog = async (id) => {
-    try {
-      await blogService.removeOne(id)
-      setBlogs(blogs.filter(blog => blog.id !== id))
-      console.log('Blog successfully deleted')
-    } catch (error) {
-      console.error('Error deleting blog', error)
+    const handleLogout = (event) => {
+        dispatch(setReset())
     }
-  }
 
-  if (user === null) {
+    if (user === null) {
+        return (
+            <div data-testid="logIn" className="container">
+                <h2>Log in to application</h2>
+
+                <Notification />
+
+                <Form onSubmit={handleLogin}>
+                    <Form.Group>
+                        <Form.Label>username:</Form.Label>
+                        <Form.Control
+                            data-testid="username"
+                            type="text"
+                            value={username}
+                            name="Username"
+                            onChange={({ target }) => setUsername(target.value)}
+                        />
+                    </Form.Group>
+
+                    <Form.Group>
+                        <Form.Label>password:</Form.Label>
+                        <Form.Control
+                            data-testid="password"
+                            type="password"
+                            value={password}
+                            name="Password"
+                            onChange={({ target }) => setPassword(target.value)}
+                        />
+                    </Form.Group>
+                    <Button variant="primary" type="submit">
+                        login
+                    </Button>
+                </Form>
+            </div>
+        )
+    }
+
     return (
-      <div>
-        <h2>Log in to application</h2>
+        <div className="container">
+            <header style={padding}>
+                <Navbar collapseOnSelect expand="lg" bg="dark" variant="dark">
+                    <Navbar.Toggle aria-controls="responsive-navbar-nav" />
+                    <Navbar.Collapse id="responsive-navbar-nav">
+                        <Nav className="mr-auto">
+                            <Nav.Link href="#" as="span">
+                                <Link to="/blogs" style={padding}>
+                                    blogs
+                                </Link>
+                            </Nav.Link>
+                            <Nav.Link href="#" as="span">
+                                <Link to="/users" style={padding}>
+                                    users
+                                </Link>
+                            </Nav.Link>
+                            <Nav.Link href="#" as="span">
+                                {user.name} logged in
+                                <button onClick={() => handleLogout()}>
+                                    Logout
+                                </button>
+                            </Nav.Link>
+                        </Nav>
+                    </Navbar.Collapse>
+                </Navbar>
+            </header>
+            <h2>Blog app</h2>
 
-        <Notification error={errorMessage} message={noteMessage}/>
-
-        <form onSubmit={handleLogin}>
-          <div>
-          username
-            <input
-              data-testid='username'
-              type="text"
-              value={username}
-              name="Username"
-              onChange={({ target }) => setUsername(target.value)}
-            />
-          </div>
-          <div>
-          password
-            <input
-              data-testid='password'
-              type="password"
-              value={password}
-              name="Password"
-              onChange={({ target }) => setPassword(target.value)}
-            />
-          </div>
-          <button type="submit">login</button>
-        </form>
-      </div>
+            <Routes>
+                <Route path="/" element={<Blogs />} />
+                <Route path="/blogs" element={<Blogs />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/users/:id" element={<UserPage />} />
+                <Route path="/blogs/:id" element={<BlogPage />} />
+            </Routes>
+        </div>
     )
-  }
-
-
-
-
-  return (
-    <div>
-      <h2>blogs</h2>
-
-      <Notification message={noteMessage} />
-
-      <p>{user.name} logged in</p>
-      <button onClick={() => handleLogout()}>
-      Logout
-      </button>
-      <Togglable buttonLabel="new blog">
-        {(toggleVisibility) => (
-          <BlogForm
-            addBlog={addBlog}
-            toggleVisibility={toggleVisibility}
-
-          />
-        )}
-      </Togglable>
-      <div data-testid="blogs">
-      {blogs.map(blog =>
-        <Blog
-          key={blog.id}
-          blog={blog}
-          loggedin={user.name}
-          onRemove={handleRemoveBlog}
-        />
-      )}
-      </div>
-
-
-
-    </div>
-  )
-
 }
 
 export default App
