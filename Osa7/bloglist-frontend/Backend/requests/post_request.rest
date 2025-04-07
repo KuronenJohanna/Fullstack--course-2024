@@ -1,0 +1,9 @@
+POST  http://localhost:3003/api/blogs
+Content-Type: application/json
+
+{
+    "title": "onkonuon",
+    "author": "noniiin",
+    "url": "http://lowkey.com",
+    "likes": 7000
+}
